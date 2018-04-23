@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
 )
@@ -29,7 +29,7 @@ import (
 // messages.saveGif#327a30cb id:InputDocument unsave:Bool = Bool;
 func (s *MessagesServiceImpl) MessagesSaveGif(ctx context.Context, request *mtproto.TLMessagesSaveGif) (*mtproto.Bool, error) {
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
-	glog.Infof("MessagesSaveGif - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
+	glog.Infof("messages.saveGif#327a30cb - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
 	// TODO(@benqi): Impl MessagesSaveGif logic
 

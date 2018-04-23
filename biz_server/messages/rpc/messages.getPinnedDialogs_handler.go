@@ -20,11 +20,14 @@ package rpc
 import (
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
-	"github.com/nebulaim/telegramd/biz_model/model"
-	"github.com/nebulaim/telegramd/biz_model/base"
+	"github.com/nebulaim/telegramd/biz/base"
+	"github.com/nebulaim/telegramd/biz/core/user"
+	"github.com/nebulaim/telegramd/biz/core/message"
+	"github.com/nebulaim/telegramd/biz/core/chat"
+	update2 "github.com/nebulaim/telegramd/biz/core/update"
 )
 
 // messages.getPinnedDialogs#e254d64e = messages.PeerDialogs;
@@ -32,16 +35,16 @@ func (s *MessagesServiceImpl) MessagesGetPinnedDialogs(ctx context.Context, requ
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
 	glog.Infof("MessagesGetPinnedDialogs - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-	// TODO(@benqi): Impl MessagesGetPinnedDialogs logic
-	dialogs := model.GetDialogModel().GetPinnedDialogs(md.UserId)
+	dialogs := user.GetPinnedDialogs(md.UserId)
 	peerDialogs := mtproto.NewTLMessagesPeerDialogs()
 
 	messageIdList := []int32{}
 	userIdList := []int32{md.UserId}
 	chatIdList := []int32{}
 
-	for _, dialog := range dialogs {
+	for _, dialog2 := range dialogs {
 		// dialog.Peer
+		dialog := dialog2.To_Dialog()
 		messageIdList = append(messageIdList, dialog.GetTopMessage())
 		peer := base.FromPeer(dialog.GetPeer())
 		// TODO(@benqi): 先假设只有PEER_USER
@@ -57,26 +60,27 @@ func (s *MessagesServiceImpl) MessagesGetPinnedDialogs(ctx context.Context, requ
 
 	glog.Infof("messageIdList - %v", messageIdList)
 	if len(messageIdList) > 0 {
-		peerDialogs.SetMessages(model.GetMessageModel().GetMessagesByPeerAndMessageIdList(md.UserId, messageIdList))
+		peerDialogs.SetMessages(message.GetMessagesByPeerAndMessageIdList2(md.UserId, messageIdList))
 	}
 
-	users := model.GetUserModel().GetUserList(userIdList)
-	for _, user := range users {
-		if user.GetId() == md.UserId {
-			user.SetSelf(true)
-		} else {
-			user.SetSelf(false)
-		}
-		user.SetContact(true)
-		user.SetMutualContact(true)
-		peerDialogs.Data2.Users = append(peerDialogs.Data2.Users, user.To_User())
-	}
+	users := user.GetUsersBySelfAndIDList(md.UserId, userIdList)
+	peerDialogs.SetUsers(users)
+	//for _, user := range users {
+	//	if user.GetId() == md.UserId {
+	//		user.SetSelf(true)
+	//	} else {
+	//		user.SetSelf(false)
+	//	}
+	//	user.SetContact(true)
+	//	user.SetMutualContact(true)
+	//	peerDialogs.Data2.Users = append(peerDialogs.Data2.Users, user.To_User())
+	//}
 
 	if len(chatIdList) > 0 {
-		peerDialogs.Data2.Chats = model.GetChatModel().GetChatListByIDList(chatIdList)
+		peerDialogs.Data2.Chats = chat.GetChatListBySelfAndIDList(md.UserId, chatIdList)
 	}
 
-	state := model.GetUpdatesModel().GetUpdatesState(md.AuthId, md.UserId)
+	state := update2.GetUpdatesState(md.AuthId, md.UserId)
 	peerDialogs.SetState(state.To_Updates_State())
 
 	glog.Infof("MessagesGetPinnedDialogs - reply: %s", logger.JsonDebugData(peerDialogs))

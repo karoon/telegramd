@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: 2018-03-11 14:14:02
+-- Generation Time: 2018-04-19 14:12:54
 -- 服务器版本： 5.6.37
 -- PHP Version: 5.6.30
 
@@ -35,7 +35,7 @@ CREATE TABLE `apps` (
   `title` varchar(128) NOT NULL,
   `short_name` varchar(128) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
+  `deleted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='apps';
 
 -- --------------------------------------------------------
@@ -105,8 +105,8 @@ CREATE TABLE `auths` (
   `lang_pack` varchar(255) NOT NULL DEFAULT '',
   `lang_code` varchar(255) NOT NULL DEFAULT '',
   `connection_hash` bigint(20) NOT NULL DEFAULT '0' COMMENT 'initConnection消息hash值',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -145,17 +145,22 @@ CREATE TABLE `auth_op_logs` (
 --
 
 CREATE TABLE `auth_phone_transactions` (
-  `id` int(11) NOT NULL,
+  `id` bigint(20) NOT NULL,
+  `auth_key_id` bigint(20) NOT NULL,
+  `phone_number` varchar(32) NOT NULL,
+  `code` varchar(8) NOT NULL,
+  `code_expired` int(11) NOT NULL DEFAULT '0',
   `transaction_hash` varchar(255) NOT NULL,
+  `sent_code_type` tinyint(4) NOT NULL DEFAULT '0',
+  `flash_call_pattern` varchar(64) NOT NULL DEFAULT '',
+  `next_code_type` tinyint(4) NOT NULL DEFAULT '0',
+  `state` tinyint(4) NOT NULL DEFAULT '0',
   `api_id` int(11) NOT NULL,
   `api_hash` varchar(255) NOT NULL,
-  `phone_number` varchar(32) NOT NULL,
-  `auth_key_id` bigint(20) NOT NULL,
-  `code` varchar(8) NOT NULL,
   `attempts` int(11) NOT NULL DEFAULT '0',
   `created_time` bigint(20) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_deleted` tinyint(4) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -170,8 +175,8 @@ CREATE TABLE `auth_salts` (
   `auth_id` bigint(20) NOT NULL,
   `salt` bigint(20) NOT NULL,
   `valid_since` int(11) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -206,8 +211,8 @@ CREATE TABLE `auth_updates_state` (
   `qts` int(11) NOT NULL DEFAULT '0',
   `seq` int(11) NOT NULL DEFAULT '0',
   `date2` int(11) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -233,8 +238,9 @@ CREATE TABLE `auth_users` (
   `ip` varchar(64) NOT NULL DEFAULT '',
   `country` varchar(64) NOT NULL DEFAULT '',
   `region` varchar(64) NOT NULL DEFAULT '',
+  `deleted_at` bigint(20) NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -287,23 +293,17 @@ CREATE TABLE `channel_users` (
 CREATE TABLE `chats` (
   `id` int(11) NOT NULL,
   `creator_user_id` int(11) NOT NULL,
-  `create_random_id` bigint(20) NOT NULL,
   `access_hash` bigint(20) NOT NULL,
+  `random_id` bigint(20) NOT NULL,
   `participant_count` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
-  `title_changer_user_id` int(11) NOT NULL,
-  `title_changed_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `title_change_random_id` bigint(20) NOT NULL,
-  `avatar_changer_user_id` int(11) NOT NULL,
-  `avatar_changed_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `avatar_change_random_id` bigint(20) NOT NULL,
-  `is_public` tinyint(1) NOT NULL DEFAULT '0',
-  `about` text NOT NULL,
-  `topic` varchar(255) DEFAULT '',
-  `is_hidden` tinyint(1) DEFAULT '0',
+  `photo_id` bigint(20) NOT NULL DEFAULT '0',
+  `admins_enabled` tinyint(4) NOT NULL DEFAULT '0',
+  `deactivated` tinyint(4) NOT NULL DEFAULT '0',
   `version` int(11) NOT NULL DEFAULT '1',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `date` int(11) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -321,8 +321,8 @@ CREATE TABLE `chat_participants` (
   `invited_at` int(11) NOT NULL DEFAULT '0',
   `joined_at` int(11) NOT NULL DEFAULT '0',
   `state` tinyint(4) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -332,14 +332,36 @@ CREATE TABLE `chat_participants` (
 --
 
 CREATE TABLE `devices` (
-  `id` int(11) NOT NULL,
-  `auth_id` bigint(20) NOT NULL,
+  `id` bigint(20) NOT NULL,
+  `auth_key_id` bigint(20) NOT NULL,
   `user_id` int(11) NOT NULL,
   `token_type` tinyint(4) NOT NULL,
   `token` varchar(255) NOT NULL,
   `state` tinyint(4) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `documents`
+--
+
+CREATE TABLE `documents` (
+  `id` bigint(20) NOT NULL,
+  `document_id` bigint(20) NOT NULL,
+  `access_hash` bigint(20) NOT NULL,
+  `dc_id` int(11) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `uploaded_file_name` varchar(255) NOT NULL DEFAULT '',
+  `ext` varchar(32) NOT NULL DEFAULT '',
+  `mime_type` varchar(32) NOT NULL DEFAULT '',
+  `thumb_id` bigint(20) NOT NULL DEFAULT '0',
+  `version` int(11) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -350,12 +372,18 @@ CREATE TABLE `devices` (
 
 CREATE TABLE `files` (
   `id` bigint(20) NOT NULL,
-  `creator_user_id` int(11) NOT NULL,
   `file_id` bigint(20) NOT NULL,
   `access_hash` bigint(20) NOT NULL,
+  `creator_id` bigint(20) NOT NULL,
+  `creator_user_id` int(11) NOT NULL,
+  `file_part_id` bigint(20) NOT NULL,
   `file_parts` int(11) NOT NULL,
   `file_size` bigint(20) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `ext` varchar(32) NOT NULL DEFAULT '',
+  `is_big_file` tinyint(4) NOT NULL DEFAULT '0',
   `md5_checksum` char(33) NOT NULL,
+  `upload_name` varchar(255) NOT NULL DEFAULT '',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -367,13 +395,18 @@ CREATE TABLE `files` (
 
 CREATE TABLE `file_parts` (
   `id` bigint(20) NOT NULL,
+  `creator_id` bigint(20) NOT NULL,
   `creator_user_id` int(11) NOT NULL,
   `file_id` bigint(20) NOT NULL,
-  `file_part` int(11) NOT NULL,
-  `is_big_file` tinyint(4) NOT NULL,
-  `file_total_parts` int(11) NOT NULL,
+  `file_part_id` bigint(20) NOT NULL,
+  `file_part` int(11) NOT NULL DEFAULT '0',
+  `is_big_file` tinyint(4) NOT NULL DEFAULT '0',
+  `file_total_parts` int(11) NOT NULL DEFAULT '0',
+  `file_path` varchar(255) NOT NULL,
+  `file_size` bigint(20) NOT NULL DEFAULT '0',
   `bytes` blob NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -385,38 +418,19 @@ CREATE TABLE `file_parts` (
 CREATE TABLE `messages` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `user_message_box_id` int(11) NOT NULL,
+  `dialog_message_id` bigint(20) NOT NULL,
   `sender_user_id` int(11) NOT NULL,
-  `peer_type` int(11) NOT NULL,
+  `message_box_type` tinyint(4) NOT NULL,
+  `peer_type` tinyint(4) NOT NULL,
   `peer_id` int(11) NOT NULL,
   `random_id` bigint(20) NOT NULL,
   `message_type` tinyint(4) NOT NULL DEFAULT '0',
   `message_data` text CHARACTER SET utf8mb4 NOT NULL,
   `date2` int(11) NOT NULL DEFAULT '0',
+  `deleted` tinyint(4) NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- 表的结构 `message_boxes`
---
-
-CREATE TABLE `message_boxes` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `user_message_box_id` int(11) NOT NULL,
-  `message_id` int(11) NOT NULL,
-  `sender_user_id` int(11) NOT NULL,
-  `message_box_type` tinyint(4) NOT NULL,
-  `peer_type` tinyint(4) NOT NULL DEFAULT '0',
-  `peer_id` int(11) NOT NULL,
-  `pts` int(11) NOT NULL,
-  `media_unread` tinyint(4) NOT NULL DEFAULT '0',
-  `state` tinyint(4) NOT NULL,
-  `date2` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -433,8 +447,23 @@ CREATE TABLE `orgs` (
   `mail` varchar(64) NOT NULL,
   `mobile` varchar(32) NOT NULL,
   `status` tinyint(4) NOT NULL DEFAULT '0',
-  `created_at` int(11) NOT NULL,
-  `updated_at` int(11) NOT NULL
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `photos`
+--
+
+CREATE TABLE `photos` (
+  `id` int(11) NOT NULL,
+  `photo_id` int(11) NOT NULL,
+  `has_stickers` int(11) NOT NULL DEFAULT '0',
+  `access_hash` int(11) NOT NULL,
+  `date` int(11) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -453,7 +482,9 @@ CREATE TABLE `photo_datas` (
   `access_hash` bigint(20) NOT NULL,
   `width` int(11) NOT NULL,
   `height` int(11) NOT NULL,
-  `file_size` int(11) NOT NULL,
+  `file_size` int(11) NOT NULL DEFAULT '0',
+  `file_path` varchar(255) NOT NULL,
+  `ext` varchar(32) NOT NULL DEFAULT '',
   `bytes` mediumblob NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -471,8 +502,8 @@ CREATE TABLE `push_credentials` (
   `token_type` tinyint(4) NOT NULL,
   `token` varchar(255) NOT NULL,
   `state` tinyint(4) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -482,12 +513,11 @@ CREATE TABLE `push_credentials` (
 --
 
 CREATE TABLE `reports` (
-  `id` int(11) NOT NULL,
-  `auth_id` bigint(20) NOT NULL,
+  `id` bigint(20) NOT NULL,
   `user_id` int(11) NOT NULL,
   `peer_type` int(11) NOT NULL,
   `peer_id` int(11) NOT NULL,
-  `reason` tinyint(4) NOT NULL,
+  `reason` tinyint(4) NOT NULL DEFAULT '0',
   `content` varchar(10000) NOT NULL DEFAULT '',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -580,16 +610,18 @@ CREATE TABLE `users` (
   `last_name` varchar(255) NOT NULL DEFAULT '',
   `username` varchar(255) NOT NULL,
   `phone` varchar(32) NOT NULL,
-  `country_code` varchar(2) NOT NULL,
+  `country_code` varchar(3) NOT NULL,
   `bio` varchar(255) NOT NULL,
   `about` varchar(512) NOT NULL DEFAULT '',
   `state` int(11) NOT NULL DEFAULT '0',
   `is_bot` tinyint(1) NOT NULL DEFAULT '0',
   `banned` bigint(20) NOT NULL,
   `banned_reason` varchar(128) NOT NULL,
+  `account_days_ttl` int(11) NOT NULL DEFAULT '180',
+  `photos` varchar(1024) NOT NULL DEFAULT '',
   `deleted` tinyint(4) NOT NULL DEFAULT '0',
   `deleted_reason` varchar(500) NOT NULL DEFAULT '',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `banned_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   `deleted_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
@@ -605,11 +637,15 @@ CREATE TABLE `user_contacts` (
   `id` int(11) NOT NULL,
   `owner_user_id` int(11) NOT NULL,
   `contact_user_id` int(11) NOT NULL,
+  `contact_phone` varchar(32) NOT NULL DEFAULT '',
+  `contact_first_name` varchar(255) NOT NULL DEFAULT '',
+  `contact_last_name` varchar(255) NOT NULL DEFAULT '',
+  `mutual` tinyint(4) NOT NULL DEFAULT '0',
   `is_blocked` tinyint(1) NOT NULL DEFAULT '0',
-  `date2` int(11) NOT NULL,
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `date2` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -635,29 +671,28 @@ CREATE TABLE `user_dialogs` (
   `sound` varchar(128) NOT NULL DEFAULT 'default',
   `pts` int(11) NOT NULL DEFAULT '0',
   `draft_id` int(11) NOT NULL DEFAULT '0',
+  `draft_type` tinyint(4) NOT NULL DEFAULT '0',
+  `draft_message_data` text CHARACTER SET utf8mb4 NOT NULL,
   `date2` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `version` bigint(20) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
 --
--- 表的结构 `user_imported_contacts`
+-- 表的结构 `user_import_contacts`
 --
 
-CREATE TABLE `user_imported_contacts` (
-  `id` int(11) NOT NULL,
+CREATE TABLE `user_import_contacts` (
+  `id` bigint(20) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `auth_id` bigint(20) NOT NULL,
-  `client_id` bigint(20) NOT NULL,
-  `phone` varchar(255) NOT NULL,
-  `first_name` varchar(255) NOT NULL,
-  `last_name` varchar(255) NOT NULL,
-  `state` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='手机通信录';
+  `contact_phone` varchar(32) NOT NULL,
+  `contact_first_name` varchar(64) NOT NULL DEFAULT '',
+  `contact_last_name` varchar(64) NOT NULL DEFAULT '',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -675,8 +710,31 @@ CREATE TABLE `user_notify_settings` (
   `mute_until` int(11) NOT NULL DEFAULT '0',
   `sound` varchar(255) NOT NULL DEFAULT 'default',
   `is_deleted` tinyint(4) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `user_passwords`
+--
+
+CREATE TABLE `user_passwords` (
+  `id` bigint(20) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `server_salt` varchar(64) NOT NULL DEFAULT '',
+  `hash` varchar(128) NOT NULL DEFAULT '',
+  `salt` varchar(64) NOT NULL DEFAULT '',
+  `hint` varchar(64) NOT NULL DEFAULT '',
+  `email` varchar(64) NOT NULL DEFAULT '',
+  `has_recovery` tinyint(4) NOT NULL DEFAULT '0',
+  `code` varchar(32) NOT NULL DEFAULT '',
+  `code_expired` int(11) NOT NULL DEFAULT '0',
+  `attempts` int(11) NOT NULL DEFAULT '0',
+  `state` tinyint(4) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -688,10 +746,12 @@ CREATE TABLE `user_notify_settings` (
 CREATE TABLE `user_presences` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `auth_id` bigint(20) NOT NULL DEFAULT '0',
-  `last_seen_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `last_seen_at` bigint(20) NOT NULL,
+  `last_seen_auth_key_id` bigint(20) NOT NULL,
   `last_seen_ip` varchar(64) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
+  `version` bigint(20) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -703,15 +763,23 @@ CREATE TABLE `user_presences` (
 CREATE TABLE `user_privacys` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `password` varchar(64) NOT NULL DEFAULT '',
-  `recovery_mail` varchar(64) NOT NULL DEFAULT '',
-  `status_timestamp` tinyint(4) NOT NULL DEFAULT '0',
-  `chat_invite` tinyint(4) NOT NULL DEFAULT '0',
-  `phone_call` tinyint(4) NOT NULL DEFAULT '0',
-  `ttl` int(11) NOT NULL DEFAULT '0',
-  `ttl_created_at` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `key_type` tinyint(4) NOT NULL DEFAULT '0',
+  `rules` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `user_profile_photos`
+--
+
+CREATE TABLE `user_profile_photos` (
+  `id` bigint(20) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `photo_id` bigint(20) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -723,13 +791,10 @@ CREATE TABLE `user_privacys` (
 CREATE TABLE `user_pts_updates` (
   `id` bigint(20) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `peer_type` tinyint(4) NOT NULL,
-  `peer_id` int(11) NOT NULL,
   `pts` int(11) NOT NULL,
-  `update_type` int(11) NOT NULL,
-  `update_data` blob NOT NULL,
-  `message_box_id` int(11) NOT NULL DEFAULT '0',
-  `max_message_box_id` int(11) NOT NULL DEFAULT '0',
+  `pts_count` int(11) NOT NULL,
+  `update_type` tinyint(4) NOT NULL DEFAULT '0',
+  `update_data` mediumtext CHARACTER SET utf8mb4 NOT NULL,
   `date2` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -748,6 +813,23 @@ CREATE TABLE `user_qts_updates` (
   `update_data` blob NOT NULL,
   `date2` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `wall_papers`
+--
+
+CREATE TABLE `wall_papers` (
+  `id` int(11) NOT NULL,
+  `type` tinyint(4) NOT NULL DEFAULT '0',
+  `title` varchar(128) NOT NULL DEFAULT '',
+  `color` int(11) NOT NULL DEFAULT '0',
+  `bg_color` int(11) NOT NULL DEFAULT '0',
+  `photo_id` bigint(20) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `deleted_at` bigint(20) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
@@ -857,9 +939,7 @@ ALTER TABLE `channel_users`
 -- Indexes for table `chats`
 --
 ALTER TABLE `chats`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `title_changer_user_id` (`title_changer_user_id`,`title_change_random_id`),
-  ADD UNIQUE KEY `avatar_changer_user_id` (`avatar_changer_user_id`,`avatar_change_random_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `chat_participants`
@@ -872,21 +952,26 @@ ALTER TABLE `chat_participants`
 -- Indexes for table `devices`
 --
 ALTER TABLE `devices`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token_type` (`token_type`,`token`);
+
+--
+-- Indexes for table `documents`
+--
+ALTER TABLE `documents`
   ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `files`
 --
 ALTER TABLE `files`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `creator_user_id` (`creator_user_id`,`file_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `file_parts`
 --
 ALTER TABLE `file_parts`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `file_id_2` (`file_id`,`file_part`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `messages`
@@ -895,18 +980,17 @@ ALTER TABLE `messages`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `message_boxes`
---
-ALTER TABLE `message_boxes`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `message_id` (`message_id`,`sender_user_id`,`message_box_type`,`peer_type`,`peer_id`);
-
---
 -- Indexes for table `orgs`
 --
 ALTER TABLE `orgs`
   ADD PRIMARY KEY (`org_id`),
   ADD UNIQUE KEY `account_name` (`account_name`);
+
+--
+-- Indexes for table `photos`
+--
+ALTER TABLE `photos`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `photo_datas`
@@ -964,7 +1048,8 @@ ALTER TABLE `users`
 --
 ALTER TABLE `user_contacts`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `owner_user_id` (`owner_user_id`,`contact_user_id`);
+  ADD UNIQUE KEY `owner_user_id_2` (`owner_user_id`,`contact_phone`),
+  ADD KEY `owner_user_id` (`owner_user_id`,`contact_user_id`);
 
 --
 -- Indexes for table `user_dialogs`
@@ -974,10 +1059,11 @@ ALTER TABLE `user_dialogs`
   ADD UNIQUE KEY `user_id` (`user_id`,`peer_type`,`peer_id`);
 
 --
--- Indexes for table `user_imported_contacts`
+-- Indexes for table `user_import_contacts`
 --
-ALTER TABLE `user_imported_contacts`
-  ADD PRIMARY KEY (`id`);
+ALTER TABLE `user_import_contacts`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`,`contact_phone`);
 
 --
 -- Indexes for table `user_notify_settings`
@@ -987,11 +1073,18 @@ ALTER TABLE `user_notify_settings`
   ADD UNIQUE KEY `user_id` (`user_id`,`peer_type`,`peer_id`);
 
 --
+-- Indexes for table `user_passwords`
+--
+ALTER TABLE `user_passwords`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `user_presences`
 --
 ALTER TABLE `user_presences`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `user_id` (`user_id`,`auth_id`),
+  ADD UNIQUE KEY `user_id` (`user_id`),
   ADD KEY `user_id_2` (`user_id`,`last_seen_at`);
 
 --
@@ -999,7 +1092,13 @@ ALTER TABLE `user_presences`
 --
 ALTER TABLE `user_privacys`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `user_id` (`user_id`);
+  ADD UNIQUE KEY `user_id` (`user_id`,`key_type`);
+
+--
+-- Indexes for table `user_profile_photos`
+--
+ALTER TABLE `user_profile_photos`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `user_pts_updates`
@@ -1014,6 +1113,12 @@ ALTER TABLE `user_qts_updates`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `wall_papers`
+--
+ALTER TABLE `wall_papers`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- 在导出的表使用AUTO_INCREMENT
 --
 
@@ -1021,7 +1126,7 @@ ALTER TABLE `user_qts_updates`
 -- 使用表AUTO_INCREMENT `apps`
 --
 ALTER TABLE `apps`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `app_configs`
@@ -1039,13 +1144,13 @@ ALTER TABLE `app_ios_push_certs`
 -- 使用表AUTO_INCREMENT `auths`
 --
 ALTER TABLE `auths`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `auth_keys`
 --
 ALTER TABLE `auth_keys`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=197;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `auth_op_logs`
@@ -1057,13 +1162,13 @@ ALTER TABLE `auth_op_logs`
 -- 使用表AUTO_INCREMENT `auth_phone_transactions`
 --
 ALTER TABLE `auth_phone_transactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `auth_salts`
 --
 ALTER TABLE `auth_salts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `auth_seq_updates`
@@ -1081,7 +1186,7 @@ ALTER TABLE `auth_updates_state`
 -- 使用表AUTO_INCREMENT `auth_users`
 --
 ALTER TABLE `auth_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `banned`
@@ -1117,43 +1222,49 @@ ALTER TABLE `chat_participants`
 -- 使用表AUTO_INCREMENT `devices`
 --
 ALTER TABLE `devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `documents`
+--
+ALTER TABLE `documents`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `files`
 --
 ALTER TABLE `files`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `file_parts`
 --
 ALTER TABLE `file_parts`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=304;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1052;
-
---
--- 使用表AUTO_INCREMENT `message_boxes`
---
-ALTER TABLE `message_boxes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=989;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `orgs`
 --
 ALTER TABLE `orgs`
-  MODIFY `org_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `org_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `photos`
+--
+ALTER TABLE `photos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `photo_datas`
 --
 ALTER TABLE `photo_datas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=389;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `push_credentials`
@@ -1165,7 +1276,7 @@ ALTER TABLE `push_credentials`
 -- 使用表AUTO_INCREMENT `reports`
 --
 ALTER TABLE `reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `secret_messages`
@@ -1183,31 +1294,37 @@ ALTER TABLE `tmp_passwords`
 -- 使用表AUTO_INCREMENT `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `user_contacts`
 --
 ALTER TABLE `user_contacts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `user_dialogs`
 --
 ALTER TABLE `user_dialogs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- 使用表AUTO_INCREMENT `user_imported_contacts`
+-- 使用表AUTO_INCREMENT `user_import_contacts`
 --
-ALTER TABLE `user_imported_contacts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `user_import_contacts`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `user_notify_settings`
 --
 ALTER TABLE `user_notify_settings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `user_passwords`
+--
+ALTER TABLE `user_passwords`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `user_presences`
@@ -1222,16 +1339,28 @@ ALTER TABLE `user_privacys`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- 使用表AUTO_INCREMENT `user_profile_photos`
+--
+ALTER TABLE `user_profile_photos`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- 使用表AUTO_INCREMENT `user_pts_updates`
 --
 ALTER TABLE `user_pts_updates`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1237;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `user_qts_updates`
 --
 ALTER TABLE `user_qts_updates`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `wall_papers`
+--
+ALTER TABLE `wall_papers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

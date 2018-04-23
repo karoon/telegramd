@@ -41,12 +41,12 @@ import (
 	"github.com/nebulaim/telegramd/baselib/mysql_client"
 	"github.com/BurntSushi/toml"
 	"fmt"
-	"github.com/nebulaim/telegramd/biz_model/dal/dao"
-	"github.com/nebulaim/telegramd/biz_server/delivery"
-	"github.com/nebulaim/telegramd/grpc_util"
-	"github.com/nebulaim/telegramd/grpc_util/service_discovery"
+	"github.com/nebulaim/telegramd/biz/dal/dao"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util/service_discovery"
 	"google.golang.org/grpc"
-	"github.com/nebulaim/telegramd/biz_server/sync"
+	"github.com/nebulaim/telegramd/biz_server/sync_client"
+	"github.com/nebulaim/telegramd/biz/nbfs_client"
 )
 
 func init() {
@@ -70,6 +70,7 @@ type BizServerConfig struct{
 	// RpcClient	*RpcClientConfig
 	Mysql		[]mysql_client.MySQLConfig
 	Redis 		[]redis_client.RedisConfig
+	NbfsRpcClient  *service_discovery.ServiceDiscoveryClientConfig
 	SyncRpcClient1 *service_discovery.ServiceDiscoveryClientConfig
 	SyncRpcClient2 *service_discovery.ServiceDiscoveryClientConfig
 }
@@ -86,7 +87,6 @@ func main() {
 
 	glog.Info(bizServerConfig)
 
-
 	// 初始化mysql_client、redis_client
 	redis_client.InstallRedisClientManager(bizServerConfig.Redis)
 	mysql_client.InstallMysqlClientManager(bizServerConfig.Mysql)
@@ -95,13 +95,11 @@ func main() {
 	dao.InstallMysqlDAOManager(mysql_client.GetMysqlClientManager())
 	dao.InstallRedisDAOManager(redis_client.GetRedisClientManager())
 
-	//lis, err := net.Listen("tcp", bizServerConfig.Server.Addr)
-	//if err != nil {
-	//	glog.Fatalf("failed to listen: %v", err)
-	//}
+	nbfs_client.InstallNbfsClient(bizServerConfig.NbfsRpcClient)
+	sync_client.InstallSyncClient(bizServerConfig.SyncRpcClient2)
 
-	delivery.InstallDeliveryInstance(bizServerConfig.SyncRpcClient1)
-	sync.InstallSyncClient(bizServerConfig.SyncRpcClient2)
+	// InstallNbfsClient
+
 	// Start server
 	grpcServer := grpc_util.NewRpcServer(bizServerConfig.Server.Addr, &bizServerConfig.Discovery)
 	grpcServer.Serve(func(s *grpc.Server) {
@@ -132,13 +130,4 @@ func main() {
 
 		mtproto.RegisterRPCUsersServer(s, &users.UsersServiceImpl{})
 	})
-
-	// var opts []grpc.ServerOption
-	// grpcServer := grpc.NewServer(opts...)
-	// grpcServer := grpc_recovery2.NewRecoveryServer(grpc_util.BizUnaryRecoveryHandler, grpc_util.BizStreamRecoveryHandler)
-
-
-	// glog.Infof("NewRPCServer in {%v}.", bizServerConfig)
-
-	// grpcServer.Serve(lis)
 }

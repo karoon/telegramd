@@ -26,10 +26,10 @@ import (
 	"github.com/nebulaim/telegramd/mtproto"
 	"encoding/binary"
 	"github.com/nebulaim/telegramd/baselib/mysql_client"
-	"github.com/nebulaim/telegramd/biz_model/dal/dao"
+	"github.com/nebulaim/telegramd/biz/dal/dao"
 	"github.com/nebulaim/telegramd/baselib/redis_client"
-	"github.com/nebulaim/telegramd/grpc_util/service_discovery"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util/service_discovery"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 )
 
 type ServerConfig struct {
@@ -44,16 +44,23 @@ func newTcpServer(config ServerConfig, cb net2.TcpConnectionCallback) (*net2.Tcp
 		// glog.Errorf("listen error: %v", err)
 		return nil, err
 	}
-	server := net2.NewTcpServer(lsn, config.Name, config.ProtoName, 1024, cb)
+	server := net2.NewTcpServer(net2.TcpServerArgs{
+		Listener:           lsn,
+		ServerName:         config.Name,
+		ProtoName:          config.ProtoName,
+		SendChanSize:       1024,
+		ConnectionCallback: cb,
+	}) // todo (omid): set max connection
 	return server, nil
 }
 
 type SessionConfig struct {
-	ServerId     int32 // 服务器ID
-	Mysql        []mysql_client.MySQLConfig
-	Redis        []redis_client.RedisConfig
-	BizRpcClient service_discovery.ServiceDiscoveryClientConfig
-	Server       ServerConfig
+	ServerId      int32 // 服务器ID
+	Mysql         []mysql_client.MySQLConfig
+	Redis         []redis_client.RedisConfig
+	BizRpcClient  service_discovery.ServiceDiscoveryClientConfig
+	NbfsRpcClient service_discovery.ServiceDiscoveryClientConfig
+	Server        ServerConfig
 }
 
 type SessionServer struct {
@@ -61,7 +68,8 @@ type SessionServer struct {
 	config         *SessionConfig
 	server         *net2.TcpServer
 	client         *net2.TcpClientGroupManager
-	rpcClient      *grpc_util.RPCClient
+	bizRpcClient   *grpc_util.RPCClient
+	nbfsRpcClient  *grpc_util.RPCClient
 	handshake      *handshake
 	sessionManager *sessionManager
 	syncHandler    *syncHandler
@@ -110,7 +118,8 @@ func (s *SessionServer) Initialize() error {
 
 func (s *SessionServer) RunLoop() {
 	// TODO(@benqi): check error
-	s.rpcClient, _ = grpc_util.NewRPCClient(&s.config.BizRpcClient)
+	s.bizRpcClient, _ = grpc_util.NewRPCClient(&s.config.BizRpcClient)
+	s.nbfsRpcClient, _ = grpc_util.NewRPCClient(&s.config.NbfsRpcClient)
 	s.server.Serve()
 	// go s.client.Serve()
 }
@@ -147,13 +156,17 @@ func (s *SessionServer) OnConnectionDataArrived(conn *net2.TcpConnection, msg in
 				glog.Error(err)
 				return nil
 			}
-			res := &mtproto.ZProtoMessage{
-				SessionId: zmsg.SessionId,
-				SeqNum: 1,
-				Metadata: zmsg.Metadata,
-				Message:  hrsp,
+			if hrsp != nil {
+				res := &mtproto.ZProtoMessage{
+					SessionId: zmsg.SessionId,
+					SeqNum: 1,
+					Metadata: zmsg.Metadata,
+					Message:  hrsp,
+				}
+				return conn.Send(res)
+			} else {
+				return nil
 			}
-			return conn.Send(res)
 		case mtproto.SESSION_SESSION_DATA:
 			return s.sessionManager.onSessionData(conn, zmsg.SessionId, zmsg.Metadata, payload.Payload[4:])
 		case mtproto.SYNC_DATA:

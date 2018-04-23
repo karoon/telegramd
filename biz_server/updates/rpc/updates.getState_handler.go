@@ -20,10 +20,10 @@ package rpc
 import (
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
-	"github.com/nebulaim/telegramd/biz_model/model"
+	update2 "github.com/nebulaim/telegramd/biz/core/update"
 )
 
 // 执行getState后，获取最新的pts, qts and seq
@@ -32,7 +32,7 @@ func (s *UpdatesServiceImpl) UpdatesGetState(ctx context.Context, request *mtpro
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
 	glog.Infof("UpdatesGetState - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-	state := model.GetUpdatesModel().GetUpdatesState(md.AuthId, md.UserId)
+	state := update2.GetUpdatesState(md.AuthId, md.UserId)
 	glog.Infof("UpdatesGetState - reply: %s", logger.JsonDebugData(state))
 	return state.To_Updates_State(), nil
 }

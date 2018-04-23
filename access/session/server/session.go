@@ -65,6 +65,7 @@ type sessionDataList struct {
 	metadata    *mtproto.ZProtoMetadata
 	salt		int64
 	sessionId   int64
+	Layer       int32
 	messages    []*mtproto.TLMessage2
 }
 
@@ -133,6 +134,8 @@ func (this *sessionDataList) onMessage(msgId int64, seqNo int32, object mtproto.
 
 	case *mtproto.TLInvokeWithLayer:
 		invokeWithLayer, _ := object.(*mtproto.TLInvokeWithLayer)
+		this.Layer = invokeWithLayer.Layer
+
 		glog.Info("processInvokeWithLayer - request data: ", object)
 
 		// TODO(@benqi): Check api layer
@@ -207,15 +210,17 @@ func (s *sessionClientList) onSessionClientData(conn *net2.TcpConnection, sessio
 	sess, ok := s.sessions[message.SessionId]
 	if !ok {
 		bizRPCClient, _ := getBizRPCClient()
+		nbfsRPCClient, _ := getNbfsRPCClient()
 		sess = &sessionClient{
 			authKeyId:   s.authKeyId,
 			sessionType: UNKNOWN,
 			// clientSessionId:      true,
-			sessionId:    message.SessionId,
-			state:        kSessionStateCreated,
-			authUserId:   s.authUserId,
-			callback:     s,
-			bizRPCClient: bizRPCClient,
+			sessionId:     message.SessionId,
+			state:         kSessionStateCreated,
+			authUserId:    s.authUserId,
+			callback:      s,
+			bizRPCClient:  bizRPCClient,
+			nbfsRPCClient: nbfsRPCClient,
 		}
 		s.sessions[message.SessionId] = sess
 		sess.onSessionClientConnected(conn, sessionID)
@@ -239,6 +244,9 @@ func (s *sessionClientList) onSessionClientData(conn *net2.TcpConnection, sessio
 	}
 
 	sessDatas := newSessionDataList(sessionID, md, message)
+	if len(sessDatas.messages) == 0 {
+		return nil
+	}
 	if s.authUserId == 0 {
 		var hasLoginedMessage = false
 		for _, m := range sessDatas.messages {
@@ -250,10 +258,11 @@ func (s *sessionClientList) onSessionClientData(conn *net2.TcpConnection, sessio
 		if hasLoginedMessage {
 			s.authUserId = getUserIDByAuthKeyID(s.authKeyId)
 			if s.authUserId == 0 {
-				err = fmt.Errorf("recv without login message: {%v}", sessDatas)
+				err = fmt.Errorf("recv without login message: %v", sessDatas)
 				glog.Errorf("onSessionClientData - authKeyId: %d, error: %v", s.authKeyId, err)
 				// TODO(@benqi): close client
-				return err
+				// return err
+
 			} else {
 				// 设置所有的客户端
 				for _, c := range s.sessions {

@@ -20,9 +20,9 @@ package server
 import (
 	"github.com/golang/glog"
 	"encoding/base64"
-	"github.com/nebulaim/telegramd/biz_model/dal/dao"
-	"github.com/nebulaim/telegramd/biz_model/dal/dataobject"
-	"github.com/cosiner/gohper/errors"
+	"github.com/nebulaim/telegramd/biz/dal/dao"
+	"github.com/nebulaim/telegramd/biz/dal/dataobject"
+	"fmt"
 )
 
 type AuthKeyStorager interface {
@@ -73,7 +73,7 @@ func (s *AuthKeyCacheManager) GetAuthKey(keyID int64) (authKey []byte) {
 func (s *AuthKeyCacheManager) PutAuthKey(keyID int64, key []byte) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New(r)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 

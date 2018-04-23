@@ -22,16 +22,17 @@ import (
 	"github.com/nebulaim/telegramd/mtproto"
 	"github.com/nebulaim/telegramd/baselib/net2"
 	"time"
-	"github.com/nebulaim/telegramd/biz_model/model"
-	// "github.com/nebulaim/telegramd/zproto"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
+	"github.com/nebulaim/telegramd/biz/core/user"
 )
 
 type sessionClient struct {
+	Layer           int32
 	authKeyId       int64
 	sessionType     int
 	clientSession   *clientSession
 	bizRPCClient    *grpc_util.RPCClient
+	nbfsRPCClient   *grpc_util.RPCClient
 	sessionId       int64
 	nextSeqNo       uint32
 	state           int
@@ -135,7 +136,17 @@ func (c *sessionClient) sendDataListToClient(md *mtproto.ZProtoMetadata, message
 	// invokeWithoutUpdates#bf9459b7 {X:Type} query:!X = X;
  */
 func (c *sessionClient) onSessionClientData(sessDataList *sessionDataList) {
+	if sessDataList.Layer != 0 {
+		c.Layer = sessDataList.Layer
+	}
+
 	for _, message := range sessDataList.messages {
+
+		// TODO(@benqi): 暂时这么用
+		if c.authUserId == 0 {
+			c.authUserId = getUserIDByAuthKeyID(c.authKeyId)
+		}
+
 		// check new_session_created
 		if c.state == kSessionStateCreated {
 			c.onNewSessionCreated(message.MsgId, message.Seqno, message.Object)
@@ -277,7 +288,11 @@ func (c *sessionClient) onRpcDropAnswer(md *mtproto.ZProtoMetadata, msgId int64,
 	rpcDropAnswer, _ := request.(*mtproto.TLRpcDropAnswer)
 	glog.Info("processRpcDropAnswer - request data: ", rpcDropAnswer.String())
 
+	rpcAnswer := &mtproto.RpcDropAnswer{Data2: &mtproto.RpcDropAnswer_Data{
+	}}
 	// TODO(@benqi): 实现rpcDropAnswer处理逻辑
+	c.sendMessageList = append(c.sendMessageList, &messageData{false, false, rpcAnswer})
+
 	return
 	// return nil
 }
@@ -312,6 +327,11 @@ func (c *sessionClient) onMsgResendReq(md *mtproto.ZProtoMetadata, msgId int64, 
 }
 
 func (c *sessionClient) onRpcRequest(md *mtproto.ZProtoMetadata, msgId int64, seqNo int32, request mtproto.TLObject) {
+	// TODO(@benqi): request error.
+	if request == nil {
+		return
+	}
+
 	glog.Infof("onRpcRequest - request: {%s}", request)
 
 	if c.sessionType == UNKNOWN {
@@ -323,7 +343,6 @@ func (c *sessionClient) onRpcRequest(md *mtproto.ZProtoMetadata, msgId int64, se
 	rpcMetadata := &grpc_util.RpcMetadata{}
 	rpcMetadata.ServerId = 1
 	rpcMetadata.NetlibSessionId = int64(c.clientSession.clientSessionId)
-	rpcMetadata.UserId = c.authUserId
 	rpcMetadata.AuthId = c.authKeyId
 	rpcMetadata.SessionId = c.sessionId
 	rpcMetadata.ClientAddr = md.ClientAddr
@@ -331,7 +350,23 @@ func (c *sessionClient) onRpcRequest(md *mtproto.ZProtoMetadata, msgId int64, se
 	rpcMetadata.SpanId = NextId()
 	rpcMetadata.ReceiveTime = time.Now().Unix()
 
-	rpcResult, err := c.bizRPCClient.Invoke(rpcMetadata, request)
+	rpcMetadata.UserId = c.authUserId
+	rpcMetadata.ClientMsgId = msgId
+
+	rpcMetadata.Layer = c.Layer
+
+	// TODO(@benqi): rpc proxy
+
+	var (
+		err error
+		rpcResult mtproto.TLObject
+	)
+
+	if checkNbfsRpcRequest(request) {
+		rpcResult, err = c.nbfsRPCClient.Invoke(rpcMetadata, request)
+	} else {
+		rpcResult, err = c.bizRPCClient.Invoke(rpcMetadata, request)
+	}
 	reply := &mtproto.TLRpcResult{
 		ReqMsgId: msgId,
 		// Result: rpcResult,
@@ -339,10 +374,13 @@ func (c *sessionClient) onRpcRequest(md *mtproto.ZProtoMetadata, msgId int64, se
 
 	if err != nil {
 		glog.Error(err)
-		reply.Result = &mtproto.TLRpcError { Data2: &mtproto.RpcError_Data {
-			ErrorCode: mtproto.RPC_INTERNAL_ERROR,
-			ErrorMessage: "INTERNAL_ERROR",
-		}}
+		rpcErr, _ := err.(*mtproto.TLRpcError)
+		if rpcErr.GetErrorCode() == int32(mtproto.TLRpcErrorCodes_NOTRETURN_CLIENT) {
+			return
+		}
+		reply.Result = rpcErr
+		// err.(*mtproto.TLRpcError)
+
 	} else {
 		glog.Infof("OnMessage - rpc_result: {%v}\n", rpcResult)
 		reply.Result = rpcResult
@@ -370,15 +408,15 @@ func (c *sessionClient) onUserOnline(serverId int32) {
 		}
 	}()
 
-	status := &model.SessionStatus{
+	status := &user.SessionStatus{
 		ServerId:        serverId,
 		UserId:          c.authUserId,
 		AuthKeyId:       c.authKeyId,
-		SessionId:       int64(c.clientSession.clientSessionId),
+		SessionId:       int64(c.sessionId),
 		NetlibSessionId: int64(c.clientSession.conn.GetConnID()),
 		Now:             time.Now().Unix(),
 	}
 
-	model.GetOnlineStatusModel().SetOnline(status)
+	user.SetOnline(status)
 }
 

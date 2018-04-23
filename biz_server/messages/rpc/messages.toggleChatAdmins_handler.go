@@ -18,20 +18,56 @@
 package rpc
 
 import (
-	"fmt"
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
+	"github.com/nebulaim/telegramd/biz_server/sync_client"
+	"github.com/nebulaim/telegramd/biz/core/chat"
+	update2 "github.com/nebulaim/telegramd/biz/core/update"
 )
 
 // messages.toggleChatAdmins#ec8bd9e1 chat_id:int enabled:Bool = Updates;
 func (s *MessagesServiceImpl) MessagesToggleChatAdmins(ctx context.Context, request *mtproto.TLMessagesToggleChatAdmins) (*mtproto.Updates, error) {
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
-	glog.Infof("MessagesToggleChatAdmins - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
+	glog.Infof("messages.toggleChatAdmins#ec8bd9e1 - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-	// TODO(@benqi): Impl MessagesToggleChatAdmins logic
+	chatLogic, err := chat.NewChatLogicById(request.ChatId)
+	if err != nil {
+		glog.Error("toggleChatAdmins#ec8bd9e1 - error: ", err)
+		return nil, err
+	}
 
-	return nil, fmt.Errorf("Not impl MessagesToggleChatAdmins")
+	err = chatLogic.ToggleChatAdmins(md.UserId, mtproto.FromBool(request.GetEnabled()))
+	if err != nil {
+		glog.Error("toggleChatAdmins#ec8bd9e1 - error: ", err)
+		return nil, err
+	}
+
+	syncUpdates := update2.NewUpdatesLogic(md.UserId)
+	//updateChatParticipants := &mtproto.TLUpdateChatParticipants{Data2: &mtproto.Update_Data{
+	//	Participants: chatLogic.GetChatParticipants().To_ChatParticipants(),
+	//}}
+	//syncUpdates.AddUpdate(updateChatParticipants.To_Update())
+	syncUpdates.AddChat(chatLogic.ToChat(md.UserId))
+
+	replyUpdates := syncUpdates.ToUpdates()
+
+	updateChatAdmins := &mtproto.TLUpdateChatAdmins{Data2: &mtproto.Update_Data{
+		ChatId:  chatLogic.GetChatId(),
+		Enabled: request.GetEnabled(),
+		Version: chatLogic.GetVersion(),
+	}}
+
+	sync_client.GetSyncClient().PushToUserNotMeUpdateShortData(md.AuthId, md.SessionId, md.UserId, updateChatAdmins.To_Update())
+
+
+	idList := chatLogic.GetChatParticipantIdList()
+	for _, id := range idList {
+		sync_client.GetSyncClient().PushToUserUpdateShortData(id, updateChatAdmins.To_Update())
+	}
+
+	glog.Infof("messages.toggleChatAdmins#ec8bd9e1 - reply: {%v}", replyUpdates)
+	return replyUpdates, nil
 }

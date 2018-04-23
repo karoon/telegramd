@@ -20,22 +20,28 @@ package rpc
 import (
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
-	"github.com/nebulaim/telegramd/biz_model/base"
-	"github.com/nebulaim/telegramd/biz_model/model"
+	"github.com/nebulaim/telegramd/biz/base"
+	"github.com/nebulaim/telegramd/biz/core/account"
 )
 
 // account.getNotifySettings#12b3ad31 peer:InputNotifyPeer = PeerNotifySettings;
 func (s *AccountServiceImpl) AccountGetNotifySettings(ctx context.Context, request *mtproto.TLAccountGetNotifySettings) (*mtproto.PeerNotifySettings, error) {
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
-	glog.Infof("AccountGetNotifySettings - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
+	glog.Infof("account.getNotifySettings#12b3ad31 - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-	// TODO(@benqi): Impl AccountGetNotifySettings logic
+	// peer := request.GetPeer()
+	if request.GetPeer().GetConstructor() != mtproto.TLConstructor_CRC32_inputNotifyPeer {
+		err := mtproto.NewRpcError2(mtproto.TLRpcErrorCodes_BAD_REQUEST)
+		glog.Error(err, ": peer only is inputNotifyPeer")
+		return nil, err
+	}
+
 	peer := base.FromInputNotifyPeer(request.GetPeer())
-	reply := model.GetAccountModel().GetNotifySettings(md.UserId, peer)
+	reply := account.GetNotifySettings(md.UserId, peer)
 
-	glog.Infof("AccountReportPeer - reply: %s", logger.JsonDebugData(reply))
+	glog.Infof("account.getNotifySettings#12b3ad31 - reply: %s", logger.JsonDebugData(reply))
 	return reply, nil
 }

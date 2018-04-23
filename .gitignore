@@ -22,8 +22,9 @@ Thumbs.db
 *.log
 *.swp
 *.swo
-frontend/frontend
-biz_server/biz_server
-access/frontend/frontend
-push/sync/sync
 access/session/session
+access/frontend/frontend
+biz_server/biz_server
+push/sync/sync
+mtproto/schemas/schema.tl.crc32_tool
+nbfs/nbfs/nbfs

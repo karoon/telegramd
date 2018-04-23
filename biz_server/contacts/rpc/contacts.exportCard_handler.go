@@ -21,10 +21,12 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
 )
+
+// 客户端未使用
 
 // contacts.exportCard#84e53737 = Vector<int>;
 func (s *ContactsServiceImpl) ContactsExportCard(ctx context.Context, request *mtproto.TLContactsExportCard) (*mtproto.VectorInt, error) {

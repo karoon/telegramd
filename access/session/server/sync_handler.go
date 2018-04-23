@@ -20,7 +20,7 @@ package server
 import (
 	"github.com/nebulaim/telegramd/baselib/net2"
 	"github.com/nebulaim/telegramd/mtproto"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/golang/glog"
 	"github.com/gogo/protobuf/proto"
 	"fmt"
@@ -83,7 +83,7 @@ func (s *syncHandler) onSyncData(conn *net2.TcpConnection, buf []byte)  (*mtprot
 
 		// TODO(@benqi): dispatch to session_client
 		pushData, _ := message.(*mtproto.PushUpdatesData)
-		dbuf := mtproto.NewDecodeBuf(pushData.RawData)
+		dbuf := mtproto.NewDecodeBuf(pushData.GetUpdatesData())
 		mdata := &messageData{
 			confirmFlag: true,
 			compressFlag: false,
@@ -94,7 +94,7 @@ func (s *syncHandler) onSyncData(conn *net2.TcpConnection, buf []byte)  (*mtprot
 		} else {
 			md := &mtproto.ZProtoMetadata{}
 			// push
-			s.smgr.pushToSessionData(pushData.GetClientId().GetAuthKeyId(), pushData.GetClientId().GetSessionId(), md, mdata)
+			s.smgr.pushToSessionData(pushData.GetAuthKeyId(), pushData.GetSessionId(), md, mdata)
 		}
 
 		return protoToRawPayload(&mtproto.VoidRsp{})

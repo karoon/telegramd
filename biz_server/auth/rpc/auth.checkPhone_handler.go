@@ -20,30 +20,31 @@ package rpc
 import (
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
-	"github.com/nebulaim/telegramd/biz_model/dal/dao"
+	"github.com/nebulaim/telegramd/biz/core/user"
+	"github.com/nebulaim/telegramd/biz/base"
 )
 
-// auth.checkPhone#6fe51dfb phone_number:string = auth.CheckedPhone;
 // tdesktop客户端会调用，android客户端未使用
+
+// auth.checkPhone#6fe51dfb phone_number:string = auth.CheckedPhone;
 func (s *AuthServiceImpl) AuthCheckPhone(ctx context.Context, request *mtproto.TLAuthCheckPhone) (*mtproto.Auth_CheckedPhone, error) {
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
-	glog.Infof("AuthCheckPhone - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
+	glog.Infof("auth.checkPhone#6fe51dfb - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-	phoneNumber, err := checkAndGetPhoneNumber(request.GetPhoneNumber())
+	phoneNumber, err := base.CheckAndGetPhoneNumber(request.GetPhoneNumber())
 	if err != nil {
 		glog.Error(err)
 		return nil, err
 	}
 
-	usersDAO := dao.GetUsersDAO(dao.DB_SLAVE)
-	usersDO := usersDAO.SelectByPhoneNumber(phoneNumber)
+	registered := user.CheckPhoneNumberExist(phoneNumber)
 	checkedPhone := mtproto.TLAuthCheckedPhone{Data2: &mtproto.Auth_CheckedPhone_Data{
-		PhoneRegistered: mtproto.ToBool(usersDO != nil),
+		PhoneRegistered: mtproto.ToBool(registered),
 	}}
 
-	glog.Infof("AuthCheckPhone - reply: %s\n", checkedPhone)
+	glog.Infof("uth.checkPhone#6fe51dfb - reply: %s\n", checkedPhone)
 	return checkedPhone.To_Auth_CheckedPhone(), nil
 }

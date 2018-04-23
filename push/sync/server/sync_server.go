@@ -23,9 +23,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/redis_client"
 	"github.com/nebulaim/telegramd/baselib/mysql_client"
-	"github.com/nebulaim/telegramd/grpc_util"
-	"github.com/nebulaim/telegramd/grpc_util/service_discovery"
-	"github.com/nebulaim/telegramd/biz_model/dal/dao"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util/service_discovery"
+	"github.com/nebulaim/telegramd/biz/dal/dao"
 	"google.golang.org/grpc"
 	"github.com/nebulaim/telegramd/mtproto"
 	"time"
@@ -57,6 +57,7 @@ type syncServer struct {
 	config     *syncConfig
 	client     *net2.TcpClientGroupManager
 	server     *grpc_util.RPCServer
+	impl       *SyncServiceImpl
 }
 
 func NewSyncServer(configPath string) *syncServer {
@@ -101,11 +102,17 @@ func (s *syncServer) RunLoop() {
 	go s.server.Serve(func(s2 *grpc.Server) {
 		// cache := cache2.NewAuthKeyCacheManager()
 		// mtproto.RegisterRPCAuthKeyServer(s, rpc.NewAuthKeyService(cache))
-		mtproto.RegisterRPCSyncServer(s2, NewSyncService(s))
+		// mtproto.RegisterRPCSyncServer(s2, NewSyncService(s))
+		s.impl = NewSyncService(s)
+		mtproto.RegisterRPCSyncServer(s2, s.impl)
 	})
 }
 
 func (s *syncServer) Destroy() {
+	if s.impl != nil {
+		s.impl.Destroy()
+	}
+
 	s.server.Stop()
 	s.client.Stop()
 }
@@ -128,7 +135,7 @@ func protoToRawPayload(m proto.Message) (*mtproto.ZProtoRawPayload, error) {
 	x := mtproto.NewEncodeBuf(128)
 	x.UInt(mtproto.SYNC_DATA)
 	n := proto.MessageName(m)
-	glog.Infof("messageName: %s, d: {%v}", n, m)
+	// glog.Infof("messageName: %s, d: {%v}", n, m)
 	x.Int(int32(len(n)))
 	x.Bytes([]byte(n))
 	b, err := proto.Marshal(m)
@@ -153,7 +160,7 @@ func (s *syncServer) OnNewClient(client *net2.TcpClient) {
 }
 
 func (s *syncServer) OnClientDataArrived(client *net2.TcpClient, msg interface{}) error {
-	glog.Infof("recv peer(%v) data: {%v}", client.GetRemoteAddress(), msg)
+	// glog.Infof("recv peer(%v) data: {%v}", client.GetRemoteAddress(), msg)
 	// var err error
 	zmsg, ok := msg.(*mtproto.ZProtoMessage)
 	if !ok {

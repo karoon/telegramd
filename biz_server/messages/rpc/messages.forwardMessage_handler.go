@@ -21,17 +21,18 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/nebulaim/telegramd/baselib/logger"
-	"github.com/nebulaim/telegramd/grpc_util"
+	"github.com/nebulaim/telegramd/baselib/grpc_util"
 	"github.com/nebulaim/telegramd/mtproto"
 	"golang.org/x/net/context"
 )
 
+// @benqi: android和pc客户端未发现会发送此消息
 // messages.forwardMessage#33963bf9 peer:InputPeer id:int random_id:long = Updates;
 func (s *MessagesServiceImpl) MessagesForwardMessage(ctx context.Context, request *mtproto.TLMessagesForwardMessage) (*mtproto.Updates, error) {
 	md := grpc_util.RpcMetadataFromIncoming(ctx)
-	glog.Infof("MessagesForwardMessage - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
+	glog.Infof("messages.forwardMessage#33963bf9 - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-	// TODO(@benqi): Impl MessagesForwardMessage logic
+	// TODO(@benqi): Impl MessagesFaveSticker logic
 
-	return nil, fmt.Errorf("Not impl MessagesForwardMessage")
+	return nil, fmt.Errorf("Not impl messages.forwardMessage#33963bf9")
 }
